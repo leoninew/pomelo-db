@@ -1,0 +1,12 @@
+# pomelo-db default configuration
+# Datasources are recommended to be managed via .env or `pomelo-db -a`
+# See skill README for DSN format details
+
+log:
+  level: warn  # debug, info, warn, error
+
+query:
+  readonly: true  # set to false to allow INSERT/UPDATE/DELETE
+  datasources:
+    # <db-type>://<user>:<password>@<host>:<port>/<database>[?key=value&...]
+    # DSN format and supported databases: see .claude/skills/pomelo-db/README.md

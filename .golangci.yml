@@ -1,0 +1,11 @@
+# golangci-lint configuration
+
+linters-settings:
+  errcheck:
+    # List of functions to exclude from checking
+    exclude-functions:
+      - (*github.com/spf13/cobra.Command).MarkFlagRequired
+
+run:
+  timeout: 5m
+  tests: true

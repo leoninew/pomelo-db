@@ -1,0 +1,12 @@
+# pomelo-db demo configuration
+# Copy to config.yaml and modify with your actual credentials
+# See skill README for DSN format and supported database types
+
+log:
+  level: warn  # debug, info, warn, error
+
+query:
+  readonly: true  # set to false to allow INSERT/UPDATE/DELETE
+  datasources:
+    # <db-type>://<user>:<password>@<host>:<port>/<database>[?key=value&...]
+    # DSN format and supported databases: see README.md

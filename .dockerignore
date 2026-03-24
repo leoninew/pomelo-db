@@ -1,0 +1,38 @@
+# Binaries
+*.exe
+pomelo-db
+pomelo-db-*
+
+# Build artifacts
+bin/
+dist/
+build/
+
+# Test and coverage
+coverage.out
+coverage.html
+*.test
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Config (keep config.toml as example)
+# Uncomment if you don't want to include it
+# config.toml
