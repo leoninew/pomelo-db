@@ -19,23 +19,23 @@ func validateQuery(sql string) error {
 	return nil
 }
 
-// Tool represents a query execution tool with readonly mode support
+// Tool represents a query execution tool
 type Tool struct {
-	conn     *db.Connection
-	readonly bool
+	conn             *db.Connection
+	allowedOperators []string
 }
 
-// NewTool creates a new query tool
-// readonly: if true, blocks write operations (INSERT/UPDATE/DELETE)
-func NewTool(cfg *config.DatasourceConfig, readonly bool) (*Tool, error) {
+// NewTool creates a new query tool.
+// allowedOperators: list of allowed SQL operator prefixes (e.g., SELECT, SHOW); empty slice means unrestricted.
+func NewTool(cfg *config.DatasourceConfig, allowedOperators []string) (*Tool, error) {
 	conn, err := db.NewConnection(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Tool{
-		conn:     conn,
-		readonly: readonly,
+		conn:             conn,
+		allowedOperators: allowedOperators,
 	}, nil
 }
 
@@ -46,14 +46,19 @@ func (t *Tool) ExecuteQuery(sql string, timeout time.Duration) ([]string, []map[
 		return nil, nil, err
 	}
 
-	// Validate this is a read-only query (aligned with Python validation)
-	sqlUpper := strings.TrimSpace(strings.ToUpper(sql))
-	if !strings.HasPrefix(sqlUpper, "SELECT") &&
-		!strings.HasPrefix(sqlUpper, "SHOW") &&
-		!strings.HasPrefix(sqlUpper, "DESCRIBE") &&
-		!strings.HasPrefix(sqlUpper, "EXPLAIN") &&
-		!strings.HasPrefix(sqlUpper, "PRAGMA") {
-		return nil, nil, fmt.Errorf("only SELECT/SHOW/DESCRIBE/EXPLAIN/PRAGMA queries are allowed in execute_query()")
+	// Validate allowed operators when restriction is configured (nil or empty = unrestricted)
+	if len(t.allowedOperators) > 0 {
+		sqlUpper := strings.TrimSpace(strings.ToUpper(sql))
+		allowed := false
+		for _, op := range t.allowedOperators {
+			if strings.HasPrefix(sqlUpper, op) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, nil, fmt.Errorf("only %v queries are allowed; use --write to allow write operations", t.allowedOperators)
+		}
 	}
 
 	slog.Debug("executing query", "timeout", timeout)
@@ -75,11 +80,6 @@ func (t *Tool) ExecuteStatement(sql string, timeout time.Duration) (int64, error
 	if err := validateQuery(sql); err != nil {
 		slog.Warn("statement validation failed", "error", err)
 		return 0, err
-	}
-
-	// Check readonly mode (aligned with Python readonly check)
-	if t.readonly {
-		return 0, fmt.Errorf("cannot execute write statements in readonly mode")
 	}
 
 	slog.Debug("executing statement", "timeout", timeout)

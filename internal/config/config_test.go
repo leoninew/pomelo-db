@@ -147,9 +147,9 @@ func TestParseDSN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseDSN(tt.dsn)
+			got, err := ParseDSN(tt.dsn)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseDSN() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseDSN() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if tt.wantErr {
@@ -185,7 +185,6 @@ log:
   level: warn
 
 query:
-  readonly: true
   datasources: {}
 `)
 

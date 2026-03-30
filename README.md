@@ -45,7 +45,10 @@ make skill
 ## 开发
 
 ```bash
-make deps && make test
+make deps        # 安装依赖
+make test        # 运行测试
+make test cov=1  # 运行测试并生成覆盖率报告（coverage.html）
+make lint        # 格式化 + lint（自动修复）
 ```
 
 ## 许可证

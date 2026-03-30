@@ -6,7 +6,16 @@ log:
   level: warn  # debug, info, warn, error
 
 query:
-  readonly: true  # set to false to allow INSERT/UPDATE/DELETE
+  # allowed_operators: controls which SQL statements are permitted.
+  # If not set (or empty), all statements are allowed (unrestricted).
+  # Example:
+  #   allowed_operators:
+  #     - SELECT
+  #     - SHOW
+  #     - DESCRIBE
+  #     - EXPLAIN
+  #     - PRAGMA
+  #     - DESC
   datasources:
     # <db-type>://<user>:<password>@<host>:<port>/<database>[?key=value&...]
     # DSN format and supported databases: see .claude/skills/pomelo-db/README.md

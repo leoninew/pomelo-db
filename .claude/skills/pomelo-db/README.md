@@ -74,11 +74,11 @@ query:
 
 ## 故障排查
 
-只读模式错误：
+操作不允许（配置了 allowed_operators）：
 ```
-Error: cannot execute write statements in readonly mode
+Error: only [...] queries are allowed; use --write to allow write operations
 ```
-解决：加 `-w` 参数。
+解决：加 `-w` 参数，或在 `config.yaml` 中清空 `allowed_operators`。
 
 数据源未找到：
 ```

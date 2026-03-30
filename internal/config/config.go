@@ -27,16 +27,8 @@ type LogConfig struct {
 
 // QueryConfig represents the query configuration section
 type QueryConfig struct {
-	Readonly    *bool             `mapstructure:"readonly"`
-	Datasources map[string]string `mapstructure:"datasources"` // DSN format only
-}
-
-// IsReadonly returns the effective readonly value (defaults to true if not set)
-func (q *QueryConfig) IsReadonly() bool {
-	if q.Readonly == nil {
-		return true
-	}
-	return *q.Readonly
+	AllowedOperators []string          `mapstructure:"allowed_operators"`
+	Datasources     map[string]string `mapstructure:"datasources"` // DSN format only
 }
 
 // DatasourceConfig represents a single datasource configuration
@@ -62,6 +54,7 @@ func Load(defaults []byte) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 
+	// Set defaults before loading any config
 	var sources []string
 
 	// 1. Load embedded defaults
@@ -89,6 +82,11 @@ func Load(defaults []byte) (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
+	}
+
+	// Normalize nil slices to empty slices so callers only need to check len()
+	if cfg.Query.AllowedOperators == nil {
+		cfg.Query.AllowedOperators = []string{}
 	}
 
 	// 4. Load .env file if exists (project-level, HIGHEST priority for datasources)

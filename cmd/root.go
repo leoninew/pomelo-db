@@ -162,10 +162,13 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	}
 	slog.Info("datasource resolved", "type", dsConfig.Type, "host", dsConfig.Host, "port", dsConfig.Port, "database", dsConfig.Database)
 
-	// Create query tool with readonly mode (config default can be overridden by --write flag)
-	readonly := cfg.Query.IsReadonly() && !allowWrite
-	slog.Info("query mode", "readonly", readonly)
-	tool, err := query.NewTool(dsConfig, readonly)
+	// In write mode, bypass allowed_operators so any SQL can be executed;
+	// the configured restriction list only applies to read queries.
+	allowedOps := cfg.Query.AllowedOperators
+	if allowWrite {
+		allowedOps = []string{}
+	}
+	tool, err := query.NewTool(dsConfig, allowedOps)
 	if err != nil {
 		return fmt.Errorf("failed to create query tool: %w", err)
 	}
@@ -181,43 +184,34 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	// Execute SQL with timeout
 	timeoutDuration := time.Duration(timeout) * time.Second
 
-	// Auto-detect query vs statement based on SQL prefix (aligned with Python logic)
-	sqlUpper := strings.TrimSpace(strings.ToUpper(sql))
-	if strings.HasPrefix(sqlUpper, "SELECT") ||
-		strings.HasPrefix(sqlUpper, "SHOW") ||
-		strings.HasPrefix(sqlUpper, "DESCRIBE") ||
-		strings.HasPrefix(sqlUpper, "EXPLAIN") ||
-		strings.HasPrefix(sqlUpper, "PRAGMA") {
-		// Execute as query
-		slog.Info("executing query", "timeout", timeoutDuration, "format", format)
-		start := time.Now()
-		columns, results, err := tool.ExecuteQuery(sql, timeoutDuration)
-		elapsed := time.Since(start)
-		if err != nil {
-			return err
-		}
-		slog.Info("query completed", "columns", len(columns), "rows", len(results))
+	slog.Info("executing sql", "timeout", timeoutDuration, "format", format, "write", allowWrite)
 
-		// Output based on format
-		if format == "table" {
-			return outputResultsAsTable(columns, results, elapsed)
-		}
-		return outputResults(columns, results)
-	} else {
-		// Execute as statement (will fail in readonly mode)
-		slog.Info("executing statement", "timeout", timeoutDuration)
+	if allowWrite {
 		start := time.Now()
-		rowcount, err := tool.ExecuteStatement(sql, timeoutDuration)
+		affected, err := tool.ExecuteStatement(sql, timeoutDuration)
 		elapsed := time.Since(start)
 		if err != nil {
 			return err
 		}
-		slog.Info("statement completed", "affected_rows", rowcount)
+		slog.Info("statement completed", "affected", affected)
 		if format == "table" {
-			return outputStatementResultAsTable(rowcount, elapsed)
+			return outputStatementResultAsTable(affected, elapsed)
 		}
-		return outputStatementResult(rowcount, elapsed)
+		return outputStatementResult(affected, elapsed)
 	}
+
+	start := time.Now()
+	columns, results, err := tool.ExecuteQuery(sql, timeoutDuration)
+	elapsed := time.Since(start)
+	if err != nil {
+		return err
+	}
+	slog.Info("query completed", "columns", len(columns), "rows", len(results))
+
+	if format == "table" {
+		return outputResultsAsTable(columns, results, elapsed)
+	}
+	return outputResults(columns, results)
 }
 
 // sqlSource returns a label describing where the SQL comes from

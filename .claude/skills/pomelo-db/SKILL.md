@@ -70,7 +70,7 @@ pomelo-db -d <datasource> -e "<sql>" -w
 | `--file` | `-f` | SQL file path (alternative to -e) |
 | `--output` | `-o` | Output format: `json` (default) or `table` |
 | `--timeout` | `-t` | Query timeout in seconds (default: 30) |
-| `--allow-write` | `-w` | Allow write operations (INSERT/UPDATE/DELETE) |
+| `--allow-write` | `-w` | Allow write operations (INSERT/UPDATE/DELETE/DDL) |
 | `--add` | `-a` | Add a datasource to .env (format: name=dsn) |
 | `--remove` | `-r` | Remove a datasource from .env |
 | `--show-config` | `-s` | Show config for a specific datasource |
@@ -78,8 +78,8 @@ pomelo-db -d <datasource> -e "<sql>" -w
 
 ## Constraints
 
-- Default readonly mode: only SELECT, SHOW, DESCRIBE, PRAGMA queries are allowed
-- Use `-w`/`--allow-write` to allow write operations (INSERT/UPDATE/DELETE)
+- Operator restriction: controlled by `allowed_operators` in `config.yaml`; if not set (or empty), all statements are allowed
+- Use `-w`/`--allow-write` to bypass `allowed_operators` and allow any SQL (INSERT/UPDATE/DELETE/DDL)
 - Supported database types: mysql, sqlserver, dm, opengauss, vastbase, sqlite
 
 ## Examples

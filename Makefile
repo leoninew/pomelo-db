@@ -1,4 +1,4 @@
-.PHONY: build build-windows build-linux test test-coverage clean help fmt lint deps run skill
+.PHONY: build build-windows build-linux test clean help lint deps run skill
 
 # Binary name
 BINARY_NAME=pomelo-db
@@ -58,12 +58,12 @@ build-linux:
 		--build-arg ALPINE_MIRROR=$(ALPINE_MIRROR) \
 		--output type=local,dest=$(BIN_DIR) \
 		.
-	@mv $(BIN_DIR)/linux_amd64/$(BINARY_NAME) $(BINARY_LINUX_AMD64) 2>/dev/null || true
-	@mv $(BIN_DIR)/linux_arm64/$(BINARY_NAME) $(BINARY_LINUX_ARM64) 2>/dev/null || true
+	@mv $(BIN_DIR)/linux_amd64/$(BINARY_NAME) $(BINARY_LINUX_AMD64) || true
+	@mv $(BIN_DIR)/linux_arm64/$(BINARY_NAME) $(BINARY_LINUX_ARM64) || true
 	@rm -rf $(BIN_DIR)/linux_amd64 $(BIN_DIR)/linux_arm64
 	@echo ""
 	@echo "All Linux binaries built successfully:"
-	@ls -lh $(BIN_DIR)/*-linux-* 2>/dev/null || dir $(BIN_DIR)\*-linux-*
+	@ls -lh $(BIN_DIR)/*-linux-* || dir $(BIN_DIR)\*-linux-*
 
 # Run the application (for development)
 # Usage: make run ARGS="--datasource test --execute 'SELECT 1'"
@@ -76,33 +76,25 @@ run:
 	fi
 
 # Run tests
-# Usage: make test coverage=true
+# Usage: make test [cov=1]
 test:
-	@if [ "$(coverage)" = "true" ]; then \
+	@if [ "$(cov)" = "1" ]; then \
 		echo "Running tests with coverage..."; \
 		go test -v -coverprofile=coverage.out ./...; \
 		go tool cover -html=coverage.out -o coverage.html; \
-		echo "Coverage report generated: coverage.html"; \
+		echo "Coverage report: coverage.html"; \
 	else \
 		echo "Running tests..."; \
 		go test -v ./...; \
 	fi
 
-# Format code
-fmt:
-	@echo "Formatting code..."
-	go fmt ./...
-	@echo "Code formatted"
-
-# Run linters
+# Format and lint (auto-fix)
 lint:
-	@echo "Running linters..."
-	@command -v golangci-lint >/dev/null 2>&1 || { \
-		echo "golangci-lint not found, installing..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-	}
-	golangci-lint run ./...
-	@echo "Linting complete"
+	@echo "Formatting and linting..."
+	@golangci-lint version >/dev/null 2>&1 || (echo "golangci-lint not found, installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+	go fmt ./...
+	golangci-lint run --fix ./...
+	@echo "Lint complete"
 
 # Install/update dependencies
 deps:
@@ -133,10 +125,8 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  run                - Run the application"
-	@echo "  test               - Run tests"
-	@echo "  test-coverage      - Run tests with coverage"
-	@echo "  fmt                - Format code with gofmt"
-	@echo "  lint               - Run golangci-lint"
+	@echo "  test               - Run tests (cov=1 to enable coverage report)"
+	@echo "  lint               - Format and lint code (auto-fix)"
 	@echo "  deps               - Install/update dependencies"
 	@echo "  clean              - Clean build artifacts"
 	@echo "  skill              - Install skill to Claude Code (~/.claude/skills/)"
