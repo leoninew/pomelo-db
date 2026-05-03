@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/mingyuan/pomelo-db/internal/config"
 	"github.com/mingyuan/pomelo-db/internal/query"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -46,7 +47,7 @@ DSN FORMAT:
   vastbase://user:pass@host:port/db?schema=public
   opengauss://user:pass@host:port/db
   dm://user:pass@host:port/db`,
-		RunE:  runQuery,
+		RunE: runQuery,
 	}
 )
 
@@ -77,7 +78,7 @@ func init() {
 }
 
 // setupLogger configures the global logger based on log level string.
-// Supported levels: debug, info, warn, error. Defaults to info if unrecognized.
+// Supported levels: debug, info, warn, error.
 func setupLogger(logLevel string) {
 	var level slog.Level
 	switch strings.ToLower(logLevel) {
@@ -90,68 +91,51 @@ func setupLogger(logLevel string) {
 	case "error":
 		level = slog.LevelError
 	default:
-		level = slog.LevelInfo
+		level = slog.LevelWarn
 	}
 
-	// Log to stderr (like Python version)
+	// Use standard TextHandler with configured level
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			// Simplify log format to match Python version: just the message
-			if a.Key == slog.TimeKey || a.Key == slog.LevelKey {
-				return slog.Attr{}
-			}
-			return a
-		},
 	})
 	slog.SetDefault(slog.New(handler))
 }
 
 func runQuery(cmd *cobra.Command, args []string) error {
-	// 1. Load configuration
-	cfg, err := config.Load(configDefaults)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// 2. Setup logger (use info level if verbose, otherwise use config)
-	logLevel := cfg.Log.Level
+	// 1. Setup logger based on verbose flag
+	// Default: warn level, -v flag: info level
+	logLevel := "warn"
 	if verbose {
 		logLevel = "info"
 	}
 	setupLogger(logLevel)
 
-	slog.Info("loading configuration")
-	slog.Debug("effective log level", "level", logLevel)
-
-	// Handle --list flag
-	if listDatasources {
-		return listDatasourcesCommand(cfg)
+	// 2. Load configuration
+	cfg, err := config.Load(configDefaults)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Handle --show-config flag
-	if showConfig != "" {
-		return showConfigCommand(cfg, showConfig)
-	}
-
-	// Handle --add flag (add/update datasource to .env)
+	// 3. Handle datasource management commands
 	if addDatasource != "" {
 		return addDatasourceCommand(addDatasource)
 	}
-
-	// Handle --remove flag (remove datasource from .env)
 	if removeDatasource != "" {
 		return removeDatasourceCommand(removeDatasource)
 	}
 
-	// If no datasource and no SQL provided, show help
-	if datasource == "" && execute == "" && file == "" {
-		return cmd.Help()
+	// 4. Handle info commands
+	if listDatasources {
+		return listDatasourcesCommand(cfg)
+	}
+	if showConfig != "" {
+		return showConfigCommand(cfg, showConfig)
 	}
 
-	// Require datasource for actual queries
-	if datasource == "" {
-		return fmt.Errorf("--datasource/-d is required for queries (use --list to see available datasources)")
+	// 5. Handle query commands
+	// Require datasource and SQL for queries
+	if datasource == "" || (execute == "" && file == "") {
+		return cmd.Help()
 	}
 
 	// Get datasource config
@@ -188,10 +172,10 @@ func runQuery(cmd *cobra.Command, args []string) error {
 
 	if allowWrite {
 		start := time.Now()
-		affected, err := tool.ExecuteStatement(sql, timeoutDuration)
+		affected, execErr := tool.ExecuteStatement(sql, timeoutDuration)
 		elapsed := time.Since(start)
-		if err != nil {
-			return err
+		if execErr != nil {
+			return execErr
 		}
 		slog.Info("statement completed", "affected", affected)
 		if format == "table" {
@@ -201,10 +185,10 @@ func runQuery(cmd *cobra.Command, args []string) error {
 	}
 
 	start := time.Now()
-	columns, results, err := tool.ExecuteQuery(sql, timeoutDuration)
+	columns, results, queryErr := tool.ExecuteQuery(sql, timeoutDuration)
 	elapsed := time.Since(start)
-	if err != nil {
-		return err
+	if queryErr != nil {
+		return queryErr
 	}
 	slog.Info("query completed", "columns", len(columns), "rows", len(results))
 

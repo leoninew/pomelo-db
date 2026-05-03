@@ -1,4 +1,4 @@
-.PHONY: build build-windows build-linux test clean help lint deps run skill
+.PHONY: build build-windows build-linux test clean help lint format deps run skill
 
 # Binary name
 BINARY_NAME=pomelo-db
@@ -88,11 +88,16 @@ test:
 		go test -v ./...; \
 	fi
 
-# Format and lint (auto-fix)
-lint:
-	@echo "Formatting and linting..."
-	@golangci-lint version >/dev/null 2>&1 || (echo "golangci-lint not found, installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+# Format code
+format:
+	@echo "Formatting code..."
 	go fmt ./...
+	@echo "Format complete"
+
+# Lint code (includes format + static analysis)
+lint: format
+	@echo "Running linter..."
+	@golangci-lint version >/dev/null 2>&1 || (echo "golangci-lint not found, installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 	golangci-lint run --fix ./...
 	@echo "Lint complete"
 
@@ -126,6 +131,7 @@ help:
 	@echo "Development:"
 	@echo "  run                - Run the application"
 	@echo "  test               - Run tests (cov=1 to enable coverage report)"
+	@echo "  format             - Format code (go fmt)"
 	@echo "  lint               - Format and lint code (auto-fix)"
 	@echo "  deps               - Install/update dependencies"
 	@echo "  clean              - Clean build artifacts"

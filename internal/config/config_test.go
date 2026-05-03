@@ -9,9 +9,9 @@ import (
 
 func TestParseDSN(t *testing.T) {
 	tests := []struct {
+		want    *DatasourceConfig
 		name    string
 		dsn     string
-		want    *DatasourceConfig
 		wantErr bool
 	}{
 		{
@@ -207,8 +207,8 @@ POMELO_DB_TEST_VASTBASE=vastbase://vbadmin:secret@127.0.0.1:5432/testdb?schema=p
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	if err := os.Chdir(tmpDir); err != nil {
-		t.Fatalf("failed to change to temp directory: %v", err)
+	if chdirErr := os.Chdir(tmpDir); chdirErr != nil {
+		t.Fatalf("failed to change to temp directory: %v", chdirErr)
 	}
 	defer func() { _ = os.Chdir(origDir) }()
 

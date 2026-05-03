@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mingyuan/pomelo-db/internal/config"
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
+
+	"github.com/mingyuan/pomelo-db/internal/config"
 )
 
 // getSQL gets SQL from command line or file
@@ -199,8 +200,7 @@ func addDatasourceCommand(ds string) error {
 		return fmt.Errorf("failed to write to .env file: %w", err)
 	}
 
-	fmt.Printf("Added datasource: %s\n", name)
-	fmt.Printf("Saved to: %s\n", envPath)
+	slog.Info("datasource added", "name", name, "path", envPath)
 	return nil
 }
 
@@ -242,8 +242,7 @@ func removeDatasourceCommand(name string) error {
 		return fmt.Errorf("failed to write .env file: %w", err)
 	}
 
-	fmt.Printf("Removed datasource: %s\n", name)
-	fmt.Printf("Saved to: %s\n", envPath)
+	slog.Info("datasource removed", "name", name, "path", envPath)
 	return nil
 }
 

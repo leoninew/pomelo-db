@@ -15,31 +15,25 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Log     LogConfig   `mapstructure:"log"`
 	Query   QueryConfig `mapstructure:"query"`
 	Sources []string    `mapstructure:"-"` // Configuration sources (not from yaml)
 }
 
-// LogConfig represents the log configuration section
-type LogConfig struct {
-	Level string `mapstructure:"level"`
-}
-
 // QueryConfig represents the query configuration section
 type QueryConfig struct {
+	Datasources      map[string]string `mapstructure:"datasources"`
 	AllowedOperators []string          `mapstructure:"allowed_operators"`
-	Datasources     map[string]string `mapstructure:"datasources"` // DSN format only
 }
 
 // DatasourceConfig represents a single datasource configuration
 type DatasourceConfig struct {
+	Options  map[string]string `mapstructure:"options"`
 	Type     string            `mapstructure:"type"`
 	Host     string            `mapstructure:"host"`
-	Port     int               `mapstructure:"port"`
-	Database string            `mapstructure:"database"` // Used for all database types (matches Python)
+	Database string            `mapstructure:"database"`
 	User     string            `mapstructure:"user"`
 	Password string            `mapstructure:"password"`
-	Options  map[string]string `mapstructure:"options"` // Optional parameters from query string (schema, charset, etc.)
+	Port     int               `mapstructure:"port"`
 }
 
 // Load loads configuration.
@@ -62,7 +56,6 @@ func Load(defaults []byte) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse embedded defaults: %w", err)
 	}
 	sources = append(sources, "embedded defaults")
-	slog.Debug("loaded embedded default configuration")
 
 	// 2. Merge user config on top of defaults
 	userConfigPath := resolveUserConfigPath()
@@ -75,7 +68,6 @@ func Load(defaults []byte) (*Config, error) {
 			return nil, fmt.Errorf("failed to parse config from %s: %w", userConfigPath, err)
 		}
 		sources = append(sources, userConfigPath)
-		slog.Debug("merged user configuration", "path", userConfigPath)
 	}
 
 	// 3. Unmarshal into struct (before .env to get base config)
@@ -103,19 +95,15 @@ func Load(defaults []byte) (*Config, error) {
 			cfg.Query.Datasources[name] = dsn
 		}
 		sources = append(sources, envPath)
-		slog.Debug("merged .env datasources", "count", len(envDatasources))
 	}
 
 	cfg.Sources = sources
 
 	// 5. Validate configuration
 	if err := cfg.Validate(); err != nil {
-		slog.Error("invalid configuration", "error", err)
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	datasourceCount := len(cfg.Query.Datasources)
-	slog.Debug("configuration loaded successfully", "datasources", datasourceCount, "log_level", cfg.Log.Level)
 	return &cfg, nil
 }
 
@@ -146,8 +134,9 @@ func resolveUserConfigPath() string {
 // loadEnvDatasources loads datasources from .env file in current directory.
 // Format: POMELO_DB_<NAME>=<DSN>
 // Example:
-//   POMELO_DB_MYDB=sqlite:///./data.db
-//   POMELO_DB_PROD=mysql://user:pass@host:3306/db
+//
+//	POMELO_DB_MYDB=sqlite:///./data.db
+//	POMELO_DB_PROD=mysql://user:pass@host:3306/db
 //
 // Returns map of datasource name to DSN string, and the env file path if loaded.
 func loadEnvDatasources() (map[string]string, string, error) {
@@ -240,10 +229,7 @@ func (c *Config) GetDatasource(name string) (*DatasourceConfig, error) {
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	if len(c.Query.Datasources) == 0 {
-		return fmt.Errorf("no datasources configured")
-	}
-
+	// Validate each configured datasource (if any)
 	for name, dsn := range c.Query.Datasources {
 		ds, err := ParseDSN(dsn)
 		if err != nil {

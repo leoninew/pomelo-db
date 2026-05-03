@@ -2,9 +2,6 @@
 # Datasources are recommended to be managed via .env or `pomelo-db -a`
 # See skill README for DSN format details
 
-log:
-  level: warn  # debug, info, warn, error
-
 query:
   # allowed_operators: controls which SQL statements are permitted.
   # If not set (or empty), all statements are allowed (unrestricted).

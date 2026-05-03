@@ -5,7 +5,40 @@ linters-settings:
     # List of functions to exclude from checking
     exclude-functions:
       - (*github.com/spf13/cobra.Command).MarkFlagRequired
+  
+  gofmt:
+    simplify: true
+  
+  goimports:
+    local-prefixes: github.com/mingyuan/pomelo-db
+  
+  govet:
+    enable-all: true
+  
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+      - name: unexported-return
+        disabled: false
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gofmt         # Check code formatting
+    - goimports     # Check import formatting
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Check for unused code
+    - gosimple      # Simplify code
+    - revive        # Fast, configurable linter
 
 run:
   timeout: 5m
   tests: true
+
+issues:
+  exclude-dirs:
+    - bin
+    - vendor

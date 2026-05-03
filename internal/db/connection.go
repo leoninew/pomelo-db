@@ -12,8 +12,9 @@ import (
 	_ "gitee.com/opengauss/openGauss-connector-go-pq"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/mingyuan/pomelo-db/internal/config"
 	_ "modernc.org/sqlite"
+
+	"github.com/mingyuan/pomelo-db/internal/config"
 )
 
 // Connection represents a database connection
